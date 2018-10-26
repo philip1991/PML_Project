@@ -1,0 +1,102 @@
+---
+title: "Final Project"
+output: html_document
+---
+
+## load required libs
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(rattle)
+library(caret)
+```
+
+## Overview
+Analyszing wearables data set for teh final project of this cousrse. You may find the original data set on http://groupware.les.inf.puc-rio.br/har.
+
+## Load data set via url
+```{r}
+# get the data vai url
+get_data <- function(url_str) {
+  return(read.csv(url(url_str),header=TRUE))
+}
+
+# do for train and test set
+train <- get_data("https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv")
+test <- get_data("https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv") 
+```
+the data is now loaded
+
+## Inspect the data set
+```{r}
+# view data size
+dim(train)
+dim(test)
+str(train)
+```
+
+
+## Pre process the data
+```{r}
+# pre process data
+clean <- function(df) {
+  # remove near zero var cols / empty / NA 
+  indColToRemove <- which(colSums(is.na(df) | df == "") > 0.8 * dim(df)[1]) 
+  # subset
+  df <- df[,-indColToRemove]
+  # drop index x
+  df <- df[,-1]
+  return(df)
+}
+
+#do for train and test
+trainClean <- clean(train)
+testClean <- clean(test)
+```
+
+
+## Inspect the data set
+```{r}
+# view data size
+dim(train)
+dim(test)
+str(train)
+```
+now 59 cols are left.
+
+## Split Data
+```{r}
+# ttrain and train test set
+train_slice_index <- createDataPartition(trainClean$classe, p=0.7, list=FALSE)
+Train1 <- trainClean[train_slice_index,]
+Test1 <- trainClean[-train_slice_index,]
+```
+
+## Train RF model with CV
+```{r}
+# set inital seed
+set.seed(0)
+trc <- trainControl(method="cv", number=5)
+model_rf <- train(classe~., data=Train1, method="rpart", na.action = na.pass, trControl=trc)
+```
+
+## View Model
+```{r}
+model_rf$finalModel
+```
+rol_belt is the most imp factor for the split.
+
+## Make predictions with model
+```{r}
+# predict
+trainpred <- predict(model_rf,newdata=testClean)
+
+# view predictions
+trainpred
+```
+
+## Including Plots
+```{r pressure, echo=FALSE}
+# view dendrogram
+fancyRpartPlot(model_rf$finalModel)
+```
+
